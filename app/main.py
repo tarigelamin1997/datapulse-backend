@@ -1,11 +1,9 @@
 from fastapi import FastAPI
+from app.api import auth
+from app.db import user_model, database
 
-app = FastAPI(
-    title="DataPulse Backend",
-    description="Backend API for the DataPulse analytics platform",
-    version="0.1.0"
-)
+user_model.Base.metadata.create_all(bind=database.engine)
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to DataPulse!"}
+app = FastAPI(title="DataPulse Backend")
+
+app.include_router(auth.router, prefix="/auth")
