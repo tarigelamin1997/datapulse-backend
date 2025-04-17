@@ -31,3 +31,41 @@ def get_kpi_dashboard(current_user: User = Depends(get_current_user), db: Sessio
         "margin_percent": round(margin_percent, 2),
         "total_sales_count": total_sales
     }
+
+from fastapi import Query
+from sqlalchemy import func, cast, Date
+from datetime import date
+from typing import List, Optional
+
+@router.get("/profit-over-time")
+def get_profit_over_time(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None)
+):
+    query = db.query(
+        cast(Sale.date, Date).label("date"),
+        func.sum(Sale.quantity * Sale.unit_price).label("revenue"),
+        func.sum(Sale.quantity * Sale.cost_price).label("cost"),
+        func.sum((Sale.quantity * (Sale.unit_price - Sale.cost_price))).label("profit")
+    ).filter(Sale.user_id == current_user.id)
+
+    if start_date:
+        query = query.filter(Sale.date >= start_date)
+    if end_date:
+        query = query.filter(Sale.date <= end_date)
+
+    query = query.group_by(cast(Sale.date, Date)).order_by("date")
+
+    results = query.all()
+
+    return [
+        {
+            "date": row.date.isoformat(),
+            "revenue": float(row.revenue),
+            "cost": float(row.cost),
+            "profit": float(row.profit)
+        }
+        for row in results
+    ]
