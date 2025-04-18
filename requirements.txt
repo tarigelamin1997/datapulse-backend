@@ -10,3 +10,6 @@ python-jose[cryptography]
 celery
 redis
 pydantic[email]
+weasyprint
+jinja2
+
